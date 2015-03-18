@@ -1,7 +1,10 @@
-import com.zaxxer.hikari._
-import scalikejdbc._
-
+/**
+ * HikariCP DataSource.
+ */
 object DataSource {
+
+  import com.zaxxer.hikari._
+
   private[this] lazy val instance = {
     val config = new HikariConfig()
     config.setJdbcUrl("jdbc:h2:mem:hello;MODE=PostgreSQL")
@@ -13,9 +16,16 @@ object DataSource {
   def apply(): javax.sql.DataSource = instance
 }
 
+/**
+ * Settings initializer.
+ */
 object SettingsInitializer {
+
+  import scalikejdbc._
+
   lazy val init = {
     Class.forName("org.h2.Driver")
+    // ScalikeJDBC connection pool - http://scalikejdbc.org/documentation/connection-pool.html
     ConnectionPool.singleton(new DataSourceConnectionPool(DataSource()))
     DB.autoCommit { implicit s =>
       sql"create table application (id serial not null, name varchar(500))".execute.apply()
@@ -25,10 +35,16 @@ object SettingsInitializer {
   }
 }
 
+/**
+ * Initialize CP settings and load tables.
+ */
 trait Settings {
   SettingsInitializer.init
 }
 
+/**
+ * JDBI Exmaple - http://jdbi.org/
+ */
 object JDBIExample extends App with Settings {
 
   import java.sql.ResultSet
@@ -55,19 +71,24 @@ object JDBIExample extends App with Settings {
   }
 
   val dbi = new DBI(DataSource())
-  using(dbi.open()) { h =>
-    val result = h.createQuery("select id, name from application").map(new DefaultMapper).iterator().asScala
-    result.foreach(println)
+  val h = dbi.open()
+  val result = h.createQuery("select id, name from application").map(new DefaultMapper).iterator().asScala
+  result.foreach(println)
+  h.close()
 
-    val dao = dbi.open(classOf[ApplicationDAO])
-    val app = dao.finbByName("sample")
-    println(app)
-    val app2 = dao.finbByBean(app)
-    println(app2)
-  }
+  val dao = dbi.open(classOf[ApplicationDAO])
+  val app = dao.finbByName("sample")
+  println(app)
+  val app2 = dao.finbByBean(app)
+  println(app2)
 }
 
+/**
+ * ScalikeJDBC Exmaple - http://scalikejdbc.org/
+ */
 object ScalikeJDBCExample extends App with Settings {
+
+  import scalikejdbc._
 
   case class Application(id: Int, name: String)
   object Application extends SQLSyntaxSupport[Application] {
@@ -78,14 +99,20 @@ object ScalikeJDBCExample extends App with Settings {
   }
 
   DB.readOnly { implicit s =>
-    val result = sql"select * from application".toMap.list.apply()
+    val result = sql"select id, name from application".toMap.list.apply()
     result.foreach(println)
+
     val app = Application.findByName("sample")
     app.foreach(println)
   }
 }
 
+/**
+ * Skinny ORM Example - http://skinny-framework.org/documentation/orm.html
+ */
 object SkinnyORMExample extends App with Settings {
+
+  import scalikejdbc._
   import skinny.orm._
 
   case class Application(id: Int, name: String)

@@ -7,5 +7,5 @@ libraryDependencies ++= Seq(
   "com.zaxxer"           %  "HikariCP"          % "2.3.3",
   "ch.qos.logback"       %  "logback-classic"   % "1.1.2"
 )
+scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature")
 scalariformSettings
-
